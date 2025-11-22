@@ -7,11 +7,14 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 public class PainelDeProcessos extends JPanel {
 
     private JTable tabela;
     private DefaultTableModel modelo;
+    private List<ProcessInfo> processosAtuais; // lista completa
+    private String termoPesquisa = ""; // guarda o termo atual
 
     public PainelDeProcessos() {
         setLayout(new BorderLayout());
@@ -26,14 +29,36 @@ public class PainelDeProcessos extends JPanel {
     }
 
     public void updateTable(List<ProcessInfo> processos) {
-        modelo.setRowCount(0);
+        this.processosAtuais = processos;
+        aplicarFiltro();
+    }
 
+    private void preencherTabela(List<ProcessInfo> processos) {
+        modelo.setRowCount(0);
         for (ProcessInfo p : processos) {
             modelo.addRow(new Object[]{
                     p.getName(),
                     String.format(Locale.US, "%.2f", p.getMemoryMB()),
                     String.format(Locale.US, "%.2f", p.getCpu())
             });
+        }
+    }
+
+    // 🔍 Filtrar por nome
+    public void filtrarPorNome(String termo) {
+        this.termoPesquisa = termo; // guarda termo
+        aplicarFiltro();
+    }
+
+    private void aplicarFiltro() {
+        if (processosAtuais == null) return;
+        if (termoPesquisa == null || termoPesquisa.isEmpty()) {
+            preencherTabela(processosAtuais); // mostra todos
+        } else {
+            List<ProcessInfo> filtrados = processosAtuais.stream()
+                    .filter(p -> p.getName().toLowerCase().contains(termoPesquisa.toLowerCase()))
+                    .collect(Collectors.toList());
+            preencherTabela(filtrados);
         }
     }
 }

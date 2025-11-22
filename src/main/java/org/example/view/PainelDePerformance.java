@@ -11,7 +11,6 @@ public class PainelDePerformance extends JPanel {
     private final List<Double> memHistory = new ArrayList<>();
 
     public PainelDePerformance() {
-        // altura fixa de 200px, largura mínima de 900px
         setPreferredSize(new Dimension(900, 200));
     }
 
@@ -34,28 +33,24 @@ public class PainelDePerformance extends JPanel {
         int w = getWidth();
         int h = getHeight();
 
-        // fundo
         g.setColor(Color.LIGHT_GRAY);
         g.fillRect(0, 0, w, h);
 
-        // borda
         g.setColor(Color.BLACK);
         g.drawRect(0, 0, w - 1, h - 1);
 
-        // desenhar CPU em verde
         drawHistory(g, cpuHistory, w, h, Color.GREEN);
 
-        // desenhar Memória em azul
         drawHistory(g, memHistory, w, h, Color.BLUE);
 
-        // mostrar valores atuais
-        g.setColor(Color.BLACK);
         if (!cpuHistory.isEmpty()) {
             double lastCpu = cpuHistory.get(cpuHistory.size() - 1);
+            g.setColor(Color.GREEN);
             g.drawString(String.format("CPU: %.1f%%", lastCpu), 10, 20);
         }
         if (!memHistory.isEmpty()) {
             double lastMem = memHistory.get(memHistory.size() - 1);
+            g.setColor(Color.BLUE);
             g.drawString(String.format("Memória: %.1f%%", lastMem), 10, 40);
         }
     }

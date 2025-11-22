@@ -1,6 +1,10 @@
 package org.example.controller;
 
-import org.example.system.*;
+import org.example.system.CpuReader;
+import org.example.system.MemoryReader;
+import org.example.system.ProcessReader;
+import org.example.system.RawProcessInfo;
+import org.example.system.ProcessInfo;
 import org.example.view.PainelDePerformance;
 import org.example.view.PainelDeProcessos;
 
@@ -10,34 +14,49 @@ import java.util.*;
 
 public class SystemMonitorController {
 
-    private final PainelDeProcessos processos;
-    private final PainelDePerformance performance;
+    private final PainelDeProcessos painelProcessos;
+    private final PainelDePerformance painelPerformance;
 
-    // mapa de valores antigos de CPU por processo
-    private Map<Integer, Double> oldCpuValues = new HashMap<>();
+    private final Map<Integer, Double> oldCpuValues = new HashMap<>();
 
-    public SystemMonitorController(PainelDeProcessos processos, PainelDePerformance performance) {
-        this.processos = processos;
-        this.performance = performance;
-        iniciarAtualizacao();
+    private long lastTimestamp = System.nanoTime();
+
+    public SystemMonitorController(PainelDeProcessos painelProcessos,
+                                   PainelDePerformance painelPerformance) {
+        this.painelProcessos = painelProcessos;
+        this.painelPerformance = painelPerformance;
+
+        Timer timer = new Timer(1000, e -> atualizar());
+        timer.start();
     }
 
-    public List<ProcessInfo> getProcessInfos() {
-        List<ProcessInfo> result = new ArrayList<>();
+    private void atualizar() {
+        List<RawProcessInfo> rawList = ProcessReader.readProcesses();
 
-        List<RawProcessInfo> list = ProcessReader.readProcesses();
-        Map<Integer, Double> cpuMap = CpuReader.computeCpuPercent(oldCpuValues, list);
+        long now = System.nanoTime();
+        double elapsedSeconds = (now - lastTimestamp) / 1_000_000_000.0;
+        lastTimestamp = now;
 
-        // atualiza oldCpuValues para próxima rodada
+        Map<Integer, Double> cpuMap = new HashMap<>();
+        int cores = Runtime.getRuntime().availableProcessors();
+
+        for (RawProcessInfo raw : rawList) {
+            double oldVal = oldCpuValues.getOrDefault(raw.pid, raw.cpuTotalSeconds);
+            double deltaCpuSeconds = raw.cpuTotalSeconds - oldVal;
+
+            double percent = Math.max((deltaCpuSeconds / elapsedSeconds) * 100.0 / cores, 0);
+            cpuMap.put(raw.pid, percent);
+        }
+
         oldCpuValues.clear();
-        for (RawProcessInfo raw : list) {
+        for (RawProcessInfo raw : rawList) {
             oldCpuValues.put(raw.pid, raw.cpuTotalSeconds);
         }
 
-        for (RawProcessInfo raw : list) {
+        List<ProcessInfo> processos = new ArrayList<>();
+        for (RawProcessInfo raw : rawList) {
             double cpu = cpuMap.getOrDefault(raw.pid, 0.0);
-
-            result.add(new ProcessInfo(
+            processos.add(new ProcessInfo(
                     raw.pid,
                     raw.name,
                     cpu,
@@ -45,24 +64,12 @@ public class SystemMonitorController {
             ));
         }
 
-        return result;
-    }
+        painelProcessos.updateTable(processos);
 
-    private void iniciarAtualizacao() {
-        Timer timer = new Timer(1000, e -> {
-            List<ProcessInfo> lista = getProcessInfos();
+        double cpuTotal = processos.stream().mapToDouble(ProcessInfo::getCpu).sum();
+        double memPercent = (MemoryReader.getUsedMemoryMB() / MemoryReader.getTotalMemoryMB()) * 100.0;
 
-            processos.updateTable(lista);
-
-            // uso global da CPU
-            double cpuTotal = CpuReader.readSystemCpuUsage();
-
-            performance.addCpuValue(cpuTotal);
-
-            double memPercent = (MemoryReader.getUsedMemoryMB() / MemoryReader.getTotalMemoryMB()) * 100.0;
-            performance.addMemoryValue(memPercent);
-        });
-
-        timer.start();
+        painelPerformance.addCpuValue(cpuTotal);
+        painelPerformance.addMemoryValue(memPercent);
     }
 }

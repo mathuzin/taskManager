@@ -20,7 +20,7 @@ public class ProcessReader {
                     .start();
 
             try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream(), "Cp1252"))) {
-                String line = br.readLine(); // cabeçalho
+                String line = br.readLine();
                 if (line == null) return list;
 
                 while ((line = br.readLine()) != null) {
