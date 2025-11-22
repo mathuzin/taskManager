@@ -1,11 +1,19 @@
 package org.example.system;
 
+import com.sun.management.OperatingSystemMXBean;
+import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class CpuReader {
 
+    private static final OperatingSystemMXBean osBean =
+            (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+
+    /**
+     * Calcula % de CPU por processo com base no delta de tempo de CPU.
+     */
     public static Map<Integer, Double> computeCpuPercent(
             Map<Integer, Double> oldValues,
             List<RawProcessInfo> currentList
@@ -17,7 +25,8 @@ public class CpuReader {
             double oldVal = oldValues.getOrDefault(raw.pid, raw.cpuTotalSeconds);
             double delta = raw.cpuTotalSeconds - oldVal;
 
-            double percent = Math.max(delta / 1.0 * 100 / cores, 0);
+            // delta é em segundos de CPU desde a última leitura
+            double percent = Math.max(delta * 100 / cores, 0);
 
             result.put(raw.pid, percent);
         }
@@ -25,7 +34,10 @@ public class CpuReader {
         return result;
     }
 
-    public static Map<Integer, Double> readCpuUsage() {
-        return new HashMap<>();
+    /**
+     * Uso global da CPU (0.0 a 1.0).
+     */
+    public static double readSystemCpuUsage() {
+        return osBean.getSystemCpuLoad() * 100.0;
     }
 }

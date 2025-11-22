@@ -1,21 +1,20 @@
 package org.example.controller;
 
-import org.example.system.CpuReader;
-import org.example.system.ProcessInfo;
-import org.example.system.ProcessReader;
-import org.example.system.RawProcessInfo;
+import org.example.system.*;
 import org.example.view.PainelDePerformance;
 import org.example.view.PainelDeProcessos;
 
 import javax.swing.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import javax.swing.Timer;
+import java.util.*;
 
 public class SystemMonitorController {
 
     private final PainelDeProcessos processos;
     private final PainelDePerformance performance;
+
+    // mapa de valores antigos de CPU por processo
+    private Map<Integer, Double> oldCpuValues = new HashMap<>();
 
     public SystemMonitorController(PainelDeProcessos processos, PainelDePerformance performance) {
         this.processos = processos;
@@ -27,7 +26,13 @@ public class SystemMonitorController {
         List<ProcessInfo> result = new ArrayList<>();
 
         List<RawProcessInfo> list = ProcessReader.readProcesses();
-        Map<Integer, Double> cpuMap = CpuReader.readCpuUsage();
+        Map<Integer, Double> cpuMap = CpuReader.computeCpuPercent(oldCpuValues, list);
+
+        // atualiza oldCpuValues para próxima rodada
+        oldCpuValues.clear();
+        for (RawProcessInfo raw : list) {
+            oldCpuValues.put(raw.pid, raw.cpuTotalSeconds);
+        }
 
         for (RawProcessInfo raw : list) {
             double cpu = cpuMap.getOrDefault(raw.pid, 0.0);
@@ -49,14 +54,15 @@ public class SystemMonitorController {
 
             processos.updateTable(lista);
 
-            double cpuTotal = lista.stream()
-                    .mapToDouble(ProcessInfo::getCpu)
-                    .sum();
+            // uso global da CPU
+            double cpuTotal = CpuReader.readSystemCpuUsage();
 
             performance.addCpuValue(cpuTotal);
+
+            double memPercent = (MemoryReader.getUsedMemoryMB() / MemoryReader.getTotalMemoryMB()) * 100.0;
+            performance.addMemoryValue(memPercent);
         });
 
         timer.start();
     }
-
 }
