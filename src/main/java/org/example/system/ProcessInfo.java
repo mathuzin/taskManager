@@ -1,21 +1,21 @@
 package org.example.system;
 
 public class ProcessInfo {
-    private String name;
+
     private int pid;
-    private double memoryBytes;
+    private String name;
+    private double cpu;
+    private double memoryMB;
 
-    public ProcessInfo(String name, int pid, double memoryBytes) {
-        this.name = name;
+    public ProcessInfo(int pid, String name, double cpu, double memoryMB) {
         this.pid = pid;
-        this.memoryBytes = memoryBytes;
+        this.name = name;
+        this.cpu = cpu;
+        this.memoryMB = memoryMB;
     }
 
-    public String getName() { return name; }
     public int getPid() { return pid; }
-    public double getMemoryBytes() { return memoryBytes; }
-
-    public double getMemoryMB() {
-        return memoryBytes / (1024.0 * 1024);
-    }
+    public String getName() { return name; }
+    public double getCpu() { return cpu; }
+    public double getMemoryMB() { return memoryMB; }
 }

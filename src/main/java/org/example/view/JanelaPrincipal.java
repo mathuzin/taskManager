@@ -1,26 +1,43 @@
 package org.example.view;
 
 import org.example.controller.SystemMonitorController;
+import org.example.system.ProcessInfo;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 
 public class JanelaPrincipal extends JFrame {
 
     public JanelaPrincipal() {
         super("Mini Task Manager Manual");
 
-        PainelDeProcessos processo = new PainelDeProcessos();
-        PainelDePerformance performance = new PainelDePerformance();
+        PainelDeProcessos painelProcessos = new PainelDeProcessos();
+        PainelDePerformance painelPerformance = new PainelDePerformance();
 
-        new SystemMonitorController(processo, performance);
+        SystemMonitorController controller =
+                new SystemMonitorController(painelProcessos, painelPerformance);
 
         setLayout(new BorderLayout());
-        add(processo, BorderLayout.CENTER);
-        add(performance, BorderLayout.SOUTH);
+        add(painelProcessos, BorderLayout.CENTER);
+        add(painelPerformance, BorderLayout.SOUTH);
 
         setSize(900, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setVisible(true);
+
+        Timer timer = new Timer(1000, e -> {
+            List<ProcessInfo> processos = controller.getProcessInfos();
+
+            painelProcessos.updateTable(processos);
+
+            double cpuTotal = processos.stream()
+                    .mapToDouble(ProcessInfo::getCpu)
+                    .sum();
+
+            painelPerformance.addCpuValue(cpuTotal);
+        });
+
+        timer.start();
     }
 }

@@ -8,31 +8,31 @@ import java.awt.*;
 import java.util.List;
 import java.util.Locale;
 
-public class PainelDeProcessos extends JPanel{
+public class PainelDeProcessos extends JPanel {
+
     private JTable tabela;
     private DefaultTableModel modelo;
 
-    public PainelDeProcessos(){
+    public PainelDeProcessos() {
         setLayout(new BorderLayout());
 
         modelo = new DefaultTableModel(
-                new Object[]{"PID", "Nome", "Memória (MB)"},0
+                new Object[]{"Nome", "Memória (MB)", "CPU (%)"}, 0
         );
 
         tabela = new JTable(modelo);
 
-        add(new JScrollPane(tabela),BorderLayout.CENTER);
+        add(new JScrollPane(tabela), BorderLayout.CENTER);
     }
 
     public void updateTable(List<ProcessInfo> processos) {
         modelo.setRowCount(0);
 
-        for (ProcessInfo p: processos) {
-            String memoriaMB = String.format(Locale.US, "%.2f", p.getMemoryMB());
+        for (ProcessInfo p : processos) {
             modelo.addRow(new Object[]{
-                    Integer.valueOf(p.getPid()),
                     p.getName(),
-                    memoriaMB
+                    String.format(Locale.US, "%.2f", p.getMemoryMB()),
+                    String.format(Locale.US, "%.2f", p.getCpu())
             });
         }
     }

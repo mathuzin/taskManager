@@ -7,40 +7,78 @@ import java.util.List;
 
 public class ProcessReader {
 
-    public List<ProcessInfo> getProcessList() {
-        List<ProcessInfo> list = new ArrayList<>();
+    public static List<RawProcessInfo> readProcesses() {
+        List<RawProcessInfo> list = new ArrayList<>();
 
         try {
-            Process p = Runtime.getRuntime().exec("tasklist /fo csv /nh");
-            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            Process process = new ProcessBuilder(
+                    "powershell",
+                    "-Command",
+                    "Get-Process | Select-Object Id,ProcessName,PM,CPU | ConvertTo-Csv -NoTypeInformation"
+            )
+                    .redirectErrorStream(true)
+                    .start();
 
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.replace("\"", "").split(",");
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream(), "Cp1252"))) {
+                String line = br.readLine(); // cabeçalho
+                if (line == null) return list;
 
-                if (parts.length >= 5) {
-                    String name = parts[0];
-                    int pid = Integer.parseInt(parts[1]);
-                    double memBytes = parseMemory(parts[4]);
-                    list.add(new ProcessInfo(name, pid, memBytes));
+                while ((line = br.readLine()) != null) {
+                    line = line.trim();
+                    if (line.isEmpty()) continue;
+
+                    String[] cols = splitCsvLine(line);
+                    if (cols.length < 4) continue;
+
+                    try {
+                        int pid = Integer.parseInt(cols[0].trim());
+                        String name = cols[1].trim();
+
+                        long mem = Long.parseLong(cols[2].trim());
+                        String cpuStr = cols[3].trim();
+                        cpuStr = cpuStr.replace(',', '.');
+
+                        double cpuTotalSeconds = cpuStr.isEmpty()
+                                ? 0.0
+                                : Double.parseDouble(cpuStr);
+
+                        RawProcessInfo r = new RawProcessInfo();
+                        r.pid = pid;
+                        r.name = name;
+                        r.memory = mem;
+                        r.cpuTotalSeconds = cpuTotalSeconds;
+
+                        list.add(r);
+                    } catch (Exception ignored) {}
                 }
             }
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return list;
     }
 
-    private Double parseMemory(String memory) {
-        try {
-            memory = memory.replace(",", "").trim();
-            Double value = Double.parseDouble(memory);
+    private static String[] splitCsvLine(String line) {
+        List<String> cols = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
 
-            return value;
-        } catch (Exception e) {
-            return 0.0;
+        for (char c : line.toCharArray()) {
+            if (c == '"') {
+                inQuotes = !inQuotes;
+                continue;
+            }
+            if (c == ',' && !inQuotes) {
+                cols.add(cur.toString());
+                cur.setLength(0);
+            } else {
+                cur.append(c);
+            }
         }
+
+        cols.add(cur.toString());
+        return cols.toArray(new String[0]);
     }
 }

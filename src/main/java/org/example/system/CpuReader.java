@@ -1,25 +1,31 @@
 package org.example.system;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CpuReader {
 
-    public double getCpuUsage() {
-        try {
-            Process p = Runtime.getRuntime().exec("wmic cpu get loadpercentage");
-            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+    public static Map<Integer, Double> computeCpuPercent(
+            Map<Integer, Double> oldValues,
+            List<RawProcessInfo> currentList
+    ) {
+        Map<Integer, Double> result = new HashMap<>();
+        int cores = Runtime.getRuntime().availableProcessors();
 
-            br.readLine();
-            String line = br.readLine();
+        for (RawProcessInfo raw : currentList) {
+            double oldVal = oldValues.getOrDefault(raw.pid, raw.cpuTotalSeconds);
+            double delta = raw.cpuTotalSeconds - oldVal;
 
-            if (line != null && !line.trim().isEmpty()) {
-                return Double.parseDouble(line.trim());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+            double percent = Math.max(delta / 1.0 * 100 / cores, 0);
+
+            result.put(raw.pid, percent);
         }
 
-        return 0.0;
+        return result;
+    }
+
+    public static Map<Integer, Double> readCpuUsage() {
+        return new HashMap<>();
     }
 }

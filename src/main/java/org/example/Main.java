@@ -13,7 +13,7 @@ public class Main {
         SwingUtilities.invokeLater(() -> {
             JFrame janela = new JFrame("Mini Gerenciador de Tarefas");
             janela.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            janela.setSize(900,600);
+            janela.setSize(900, 600);
             janela.setLayout(new BorderLayout());
 
             PainelDeProcessos painelDeProcessos = new PainelDeProcessos();
@@ -22,6 +22,7 @@ public class Main {
             janela.add(painelDeProcessos, BorderLayout.CENTER);
             janela.add(painelDePerformance, BorderLayout.SOUTH);
 
+            // CONTROLLER DEFINITIVO
             new SystemMonitorController(painelDeProcessos, painelDePerformance);
 
             janela.setVisible(true);
